@@ -30,8 +30,17 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadSessions() async {
-    final sessions = await ApiService.getSessions();
-    if (mounted) setState(() => _sessions = sessions);
+    final sessions = await LocalStorageService.getSessions();
+    final nonEmptySessions = <ChatSession>[];
+    
+    for (final session in sessions) {
+      final messages = await LocalStorageService.getSessionMessages(session.id);
+      if (messages.isNotEmpty) {
+        nonEmptySessions.add(session);
+      }
+    }
+    
+    if (mounted) setState(() => _sessions = nonEmptySessions);
   }
 
   Future<void> _createNewChatAutomatically() async {

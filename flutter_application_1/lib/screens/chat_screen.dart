@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
+import '../models/chat_session.dart';
 import '../services/api_service.dart';
+import '../services/local_storage_service.dart';
 import '../widgets/message_bubble.dart';
 import 'message_details_screen.dart';
 import 'history_screen.dart';
@@ -33,15 +35,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadSessionMessages() async {
     if (_currentSessionId == null) return;
     
-    try {
-      final messages = await ApiService.getSessionMessages(_currentSessionId!);
-      setState(() {
-        _messages.clear();
-        _messages.addAll(messages);
-      });
-    } catch (e) {
-      // Handle error silently for now
-    }
+    final messages = await LocalStorageService.getSessionMessages(_currentSessionId!);
+    setState(() {
+      _messages.clear();
+      _messages.addAll(messages);
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -68,7 +66,8 @@ class _ChatScreenState extends State<ChatScreen> {
       
       // Create new session if needed
       if (message == null) {
-        final session = await ApiService.createSession(title: text.length > 50 ? text.substring(0, 50) + '...' : text);
+        final title = text.length > 50 ? text.substring(0, 50) + '...' : text;
+        final session = await ApiService.createSession(title: title);
         _currentSessionId = session.id;
         message = await ApiService.processTextInSession(_currentSessionId!, text);
       }
@@ -77,6 +76,23 @@ class _ChatScreenState extends State<ChatScreen> {
         _messages.add(message!);
         _isLoading = false;
       });
+      
+      // Update session title if this is the first message
+      if (_messages.length == 1 && _currentSessionId != null) {
+        final title = text.length > 50 ? text.substring(0, 50) + '...' : text;
+        final sessions = await LocalStorageService.getSessions();
+        final sessionIndex = sessions.indexWhere((s) => s.id == _currentSessionId);
+        if (sessionIndex != -1) {
+          final updatedSession = ChatSession(
+            id: sessions[sessionIndex].id,
+            title: title,
+            createdAt: sessions[sessionIndex].createdAt,
+            updatedAt: DateTime.now(),
+          );
+          await LocalStorageService.updateSession(updatedSession);
+        }
+      }
+      
       widget.onSessionUpdate?.call();
     } catch (e) {
       setState(() {

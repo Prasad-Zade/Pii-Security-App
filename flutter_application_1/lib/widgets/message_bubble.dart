@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/chat_message.dart';
 
 class MessageBubble extends StatefulWidget {
@@ -48,7 +49,7 @@ class _MessageBubbleState extends State<MessageBubble> {
               icon: Icons.lock,
               color: const Color(0xFF4A1A1A),
               textColor: Colors.red[300]!,
-              label: "🔒 Masked (PII Protected)",
+              label: "Masked (PII Protected)",
               alignment: Alignment.centerLeft,
             ),
             const SizedBox(height: 6),
@@ -57,7 +58,7 @@ class _MessageBubbleState extends State<MessageBubble> {
               icon: Icons.lightbulb,
               color: const Color(0xFF1A2A4A),
               textColor: Colors.blue[300]!,
-              label: "💡 AI Response (Safe)",
+              label: "AI Response (Safe)",
               alignment: Alignment.centerLeft,
             ),
           ],
@@ -105,9 +106,20 @@ class _MessageBubbleState extends State<MessageBubble> {
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              text.isEmpty ? 'No content available' : text,
-              style: TextStyle(color: textColor),
+            text.isEmpty ? Text('No content available', style: TextStyle(color: textColor)) :
+            MarkdownBody(
+              data: text,
+              styleSheet: MarkdownStyleSheet(
+                p: TextStyle(color: textColor),
+                h1: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h2: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h3: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                code: TextStyle(color: textColor, backgroundColor: Colors.grey[800]),
+                codeblockDecoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
           ],
         ),
@@ -136,7 +148,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                 Icon(Icons.check_circle, size: 16, color: Colors.green[300]),
                 const SizedBox(width: 6),
                 Text(
-                  "✅ Final Result",
+                  "Final Result",
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -161,11 +173,21 @@ class _MessageBubbleState extends State<MessageBubble> {
               ],
             ),
             const SizedBox(height: 6),
-            Text(
-              widget.message.reconstructedText.isEmpty
+            MarkdownBody(
+              data: widget.message.reconstructedText.isEmpty
                   ? widget.message.botResponse
                   : widget.message.reconstructedText,
-              style: TextStyle(color: Colors.green[300]),
+              styleSheet: MarkdownStyleSheet(
+                p: TextStyle(color: Colors.green[300]),
+                h1: TextStyle(color: Colors.green[300], fontWeight: FontWeight.bold),
+                h2: TextStyle(color: Colors.green[300], fontWeight: FontWeight.bold),
+                h3: TextStyle(color: Colors.green[300], fontWeight: FontWeight.bold),
+                code: TextStyle(color: Colors.green[300], backgroundColor: Colors.grey[800]),
+                codeblockDecoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
