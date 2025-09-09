@@ -1,8 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any
 import time, json
-from .detector import PIIDetector, PIIEntity
-from .anonymizer import AnonymizationEngine
+from .comprehensive_detector import ComprehensivePIIDetector, PIIEntity
+from .comprehensive_anonymizer import ComprehensiveAnonymizer
 from .llm_connector import GeminiConnector
 from .reconstructor import ReconstructionModule
 
@@ -18,25 +18,48 @@ class ProcessingResult:
 
 class PIIPrivacySystem:
     def __init__(self, config_path='config.yaml'):
-        self.detector = PIIDetector()
-        self.anonymizer = AnonymizationEngine()
+        self.detector = ComprehensivePIIDetector()
+        self.anonymizer = ComprehensiveAnonymizer()
         self.llm = GeminiConnector()
         self.reconstructor = ReconstructionModule()
         self.history = []
 
-    def process(self, text:str, include_llm:bool=True):
+    def process(self, text: str, include_llm: bool = True):
         start = time.time()
-        ents = self.detector.detect_entities(text)
-        anon, mapping = self.anonymizer.anonymize_text(text, ents)
-        llm_resp = ''
-        if include_llm:
-            llm_resp = self.llm.generate(anon)
-        reconstructed = self.reconstructor.reconstruct(llm_resp, mapping) if llm_resp else ''
-        pt = time.time()-start
-        score = self._calc_score(ents, text)
-        res = ProcessingResult(text, anon, llm_resp, reconstructed, ents, pt, score)
-        self.history.append(res)
-        return res
+        
+        # Ensure text is properly cleaned
+        text = text.strip() if text else ''
+        if not text:
+            return ProcessingResult('', '', '', '', [], 0.0, 100.0)
+        
+        try:
+            # Detect entities
+            ents = self.detector.detect_entities(text)
+            
+            # Anonymize text
+            anon, mapping = self.anonymizer.anonymize_text(text, ents)
+            
+            # Generate LLM response if requested
+            llm_resp = ''
+            if include_llm and anon:
+                llm_resp = self.llm.generate(anon)
+            
+            # Reconstruct text
+            reconstructed = ''
+            if llm_resp and mapping:
+                reconstructed = self.reconstructor.reconstruct(llm_resp, mapping)
+            
+            pt = time.time() - start
+            score = self._calc_score(ents, text)
+            
+            res = ProcessingResult(text, anon, llm_resp, reconstructed, ents, pt, score)
+            self.history.append(res)
+            return res
+            
+        except Exception as e:
+            # Return error result
+            pt = time.time() - start
+            return ProcessingResult(text, f'[ERROR: {str(e)}]', '', '', [], pt, 0.0)
 
     def _calc_score(self, ents, txt):
         if not ents: return 100.0
