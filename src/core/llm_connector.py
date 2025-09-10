@@ -1,6 +1,12 @@
 import os
 import logging
-import google.generativeai as genai
+
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    GENAI_AVAILABLE = False
+    genai = None
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +18,7 @@ class GeminiConnector:
         self.available = False
         self.model = None
 
-        if self.api_key:
+        if GENAI_AVAILABLE and self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel(self.model_name)
@@ -21,7 +27,7 @@ class GeminiConnector:
             except Exception as e:
                 logger.error(f"Failed to init Gemini: {e}")
         else:
-            logger.warning("No API key found for Gemini.")
+            logger.warning("Gemini not available or no API key found.")
 
     def is_available(self):
         return self.available and self.model is not None
@@ -31,6 +37,8 @@ class GeminiConnector:
             return self._mock(prompt)
 
         try:
+            if not GENAI_AVAILABLE:
+                return self._mock(prompt)
             from google.generativeai import types
             
             # Configure safety settings to be less restrictive for PII detection
