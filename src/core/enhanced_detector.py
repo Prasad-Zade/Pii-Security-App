@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from typing import List
 import logging
-from .dependency_analyzer import DependencyAnalyzer
+from .ml_dependency_analyzer import MLDependencyAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class PIIEntity:
 
 class EnhancedPIIDetector:
     def __init__(self, model_name: str = 'en_core_web_sm'):
-        self.dependency_analyzer = DependencyAnalyzer()
+        self.dependency_analyzer = MLDependencyAnalyzer()
         try:
             import spacy
             self.nlp = spacy.load(model_name)
@@ -28,7 +28,7 @@ class EnhancedPIIDetector:
         # Comprehensive PII patterns for all categories
         self.patterns = {
             # Names and Identity
-            'FULL_NAME': re.compile(r'\b(?:my name is|i am|i\'m|called|name:|full name)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+){1,2})(?=\s+and|\s*,|\s*$)', re.IGNORECASE),
+            'FULL_NAME': re.compile(r'\b(?:my name is|i am|i\'m|called|name:|full name)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+){1,2})(?=\s+[a-z]+)', re.IGNORECASE),
             'FIRST_NAME': re.compile(r'\b(?:first name|fname)\s*[:=]\s*([A-Z][a-z]+)', re.IGNORECASE),
             'LAST_NAME': re.compile(r'\b(?:last name|surname|lname)\s*[:=]\s*([A-Z][a-z]+)', re.IGNORECASE),
             'TITLE': re.compile(r'\b(?:Dr|Mr|Ms|Mrs|Prof|Sir|Madam)\.\s*[A-Z][a-z]+', re.IGNORECASE),
@@ -150,10 +150,9 @@ class EnhancedPIIDetector:
         
         entities = self._remove_overlaps(entities)
         
-        # Analyze dependencies and mark entities for preservation
-        dependencies = self.dependency_analyzer.analyze_dependencies(text, entities)
+        # Use ML model to determine preservation
         for entity in entities:
-            if self.dependency_analyzer.should_preserve_entity(entity, text, dependencies):
+            if self.dependency_analyzer.should_preserve_entity(entity, text):
                 entity.preserve = True
         
         return entities

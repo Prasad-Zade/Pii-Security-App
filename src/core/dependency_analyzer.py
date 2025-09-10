@@ -175,6 +175,8 @@ class DependencyAnalyzer:
             rf'(?:tell\s+me\s+)?(?:addition|sum|total)\s+(?:of\s+)?{re.escape(entity_lower)}\b',
             rf'{re.escape(entity_lower)}\s+(?:tell\s+me\s+)?(?:addition|sum|total)\b',
             rf'(?:calculate|compute)\s+(?:the\s+)?(?:addition|sum|total)\s+(?:of\s+)?{re.escape(entity_lower)}\b',
+            # Handle "calculate addition of my aadhaar number" where entity appears after the request
+            rf'(?:calculate|compute|tell\s+me)\s+(?:the\s+)?(?:addition|sum|total)\s+of\s+(?:my\s+)?(?:aadhaar|phone|card|account)\s+(?:number\s+)?.*{re.escape(entity_lower)}',
             rf'{re.escape(entity_lower)}\s*(?:\+|plus)\s*\d+',
             rf'\d+\s*(?:\+|plus)\s*{re.escape(entity_lower)}',
             # Handle "number is X tell me addition of it" pattern
