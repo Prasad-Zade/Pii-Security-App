@@ -115,13 +115,32 @@ class GeminiConnector:
 
     def _mock(self, prompt):
         """Fallback responses when API is unavailable"""
-        canned = [
-            "Thank you — processed anonymously.",
-            "I have reviewed the text and can help.",
-            "Analysis complete - privacy concerns noted.",
-            "Content processed with privacy considerations."
+        prompt_lower = prompt.lower()
+        
+        # Math/calculation responses
+        if any(word in prompt_lower for word in ['addition', 'sum', 'calculate', 'add']):
+            import re
+            numbers = re.findall(r'\d+', prompt)
+            if numbers:
+                try:
+                    total = sum(int(num) for num in numbers)
+                    return f"The sum of the digits is: {total}"
+                except:
+                    pass
+            return "I can help with calculations. Please provide the numbers you'd like me to add."
+        
+        # Medical responses
+        if any(word in prompt_lower for word in ['diabetes', 'hypertension', 'medical', 'health']):
+            return "For medical advice, please consult with a healthcare professional. I can provide general information but not medical diagnosis or treatment recommendations."
+        
+        # General helpful responses
+        responses = [
+            "I understand your request and I'm here to help.",
+            "Thank you for your message. How can I assist you further?",
+            "I've processed your request. What would you like to know?",
+            "I'm ready to help. Please let me know what you need."
         ]
-        return canned[hash(prompt) % len(canned)]
+        return responses[hash(prompt) % len(responses)]
 
     def test_connection(self):
         """Test the connection with a simple prompt"""
