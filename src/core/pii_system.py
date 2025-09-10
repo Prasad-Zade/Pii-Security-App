@@ -1,7 +1,7 @@
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any
 import time, json
-from .comprehensive_detector import ComprehensivePIIDetector, PIIEntity
+from .enhanced_detector import EnhancedPIIDetector, PIIEntity
 from .comprehensive_anonymizer import ComprehensiveAnonymizer
 from .llm_connector import GeminiConnector
 from .reconstructor import ReconstructionModule
@@ -18,7 +18,7 @@ class ProcessingResult:
 
 class PIIPrivacySystem:
     def __init__(self, config_path='config.yaml'):
-        self.detector = ComprehensivePIIDetector()
+        self.detector = EnhancedPIIDetector()
         self.anonymizer = ComprehensiveAnonymizer()
         self.llm = GeminiConnector()
         self.reconstructor = ReconstructionModule()

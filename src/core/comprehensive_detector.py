@@ -29,6 +29,7 @@ class ComprehensivePIIDetector:
         self.patterns = {
             # Basic Identity
             'NAME_PATTERN': re.compile(r'(?:my name is|i am|i\'m|call me|this is|here is|name:|father\'s name|mother\'s name|spouse name|guardian name)\s+([A-Za-z]+(?:[\s\-\']+[A-Za-z]+)*)', re.IGNORECASE),
+            'SIMPLE_NAME_PATTERN': re.compile(r'(?:my name is|i am|i\'m)\s+([a-z]+)', re.IGNORECASE),
             'STANDALONE_NAME': re.compile(r'\b([A-Z][a-z]+(?:[\s\-\']+[A-Z][a-z]+)+)\b'),
             'GENDER': re.compile(r'\b(?:gender|sex):\s*(?:male|female|m|f|transgender|other)\b', re.IGNORECASE),
             'DOB': re.compile(r'\b(?:dob|date of birth|born on):\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b', re.IGNORECASE),
@@ -77,7 +78,61 @@ class ComprehensivePIIDetector:
             'DATE': re.compile(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b'),
         }
 
-        self.medical_keywords = set(['diabetes','cancer','hypertension','asthma','covid','alzheimer','depression'])
+        self.medical_keywords = set([
+            # Common conditions with misspellings
+            'diabetes','dibaties','diabeties','diabetis','type 1 diabetes','type 2 diabetes',
+            'cancer','cancor','kanser',
+            'hypertension','high blood pressure','bp',
+            'asthma','asma','astma',
+            'covid','corona','coronavirus',
+            'alzheimer','alzhiemer','dementia',
+            'depression','depresion','anxiety',
+            'heart disease','heart attack','cardiac',
+            'arthritis','arthritus','joint pain',
+            'migraine','migrain','headache',
+            'epilepsy','epilepcy','seizure',
+            'pneumonia','pnemonia','lung infection',
+            'bronchitis','bronkitis',
+            'tuberculosis','tb','tuburculosis',
+            'malaria','maleria','fever',
+            'dengue','dengu','chikungunya',
+            'typhoid','tyfoid','jaundice',
+            'hepatitis','hepatitus','liver disease',
+            'kidney disease','kidney failure','renal',
+            'stroke','paralysis','brain stroke',
+            'obesity','overweight','diabesity',
+            'thyroid','thyroids','hyperthyroid','hypothyroid',
+            'anemia','anaemia','low hemoglobin',
+            'osteoporosis','bone disease','fracture',
+            'gastritis','acidity','ulcer','stomach pain',
+            'constipation','diarrhea','loose motion',
+            'piles','hemorrhoids','fissure',
+            'sinusitis','sinus','cold','cough',
+            'allergy','skin allergy','rash',
+            'eczema','psoriasis','dermatitis',
+            'insomnia','sleep disorder','sleeplessness',
+            'vertigo','dizziness','balance problem',
+            'tinnitus','ear problem','hearing loss',
+            'cataract','glaucoma','eye problem',
+            'myopia','hyperopia','vision problem',
+            'hernia','appendicitis','gallstone',
+            'fibromyalgia','chronic pain','back pain',
+            'sciatica','slip disc','spine problem',
+            'varicose veins','blood clot','circulation',
+            'gout','uric acid','joint swelling',
+            'pcod','pcos','hormonal imbalance',
+            'endometriosis','menstrual problem','periods',
+            'infertility','pregnancy complications','miscarriage',
+            'prostate','enlarged prostate','urinary problem',
+            'erectile dysfunction','impotence','sexual problem',
+            'bipolar','schizophrenia','mental health',
+            'adhd','autism','learning disability',
+            'parkinsons','multiple sclerosis','neurological',
+            'lupus','autoimmune','immune system',
+            'crohns','ibd','inflammatory bowel',
+            'celiac','gluten intolerance','food allergy',
+            'lactose intolerance','dairy allergy','digestion'
+        ])
 
     def detect_entities(self, text: str) -> List[PIIEntity]:
         if not text:
@@ -101,6 +156,11 @@ class ComprehensivePIIDetector:
                     name = m.group(1).strip()
                     if self._validate_name(name):
                         entities.append(PIIEntity(name, 'PERSON', m.start(1), m.end(1), 0.95))
+            elif label == 'SIMPLE_NAME_PATTERN':
+                for m in patt.finditer(text):
+                    name = m.group(1).strip()
+                    if len(name) >= 2:  # Simple validation for single names
+                        entities.append(PIIEntity(name, 'PERSON', m.start(1), m.end(1), 0.90))
             elif label == 'STANDALONE_NAME':
                 for m in patt.finditer(text):
                     name = m.group(1).strip()
@@ -111,10 +171,9 @@ class ComprehensivePIIDetector:
                     if self._validate(m.group(), label):
                         entities.append(PIIEntity(m.group().strip(), label, m.start(), m.end(), 0.98))
 
-        # Medical keywords
-        low = text.lower()
+        # Medical keywords - case insensitive
         for kw in self.medical_keywords:
-            for match in re.finditer(r'\b' + re.escape(kw) + r'\b', low):
+            for match in re.finditer(r'\b' + re.escape(kw) + r'\b', text, re.IGNORECASE):
                 entities.append(PIIEntity(text[match.start():match.end()], 'MEDICAL_CONDITION', match.start(), match.end(), 0.9))
 
         entities = self._remove_overlaps(entities)
@@ -197,7 +256,13 @@ class ComprehensivePIIDetector:
             overlaps = False
             for existing in result:
                 if (current.start < existing.end and current.end > existing.start):
-                    if (current.confidence > existing.confidence or 
+                    # Prioritize medical conditions over spaCy entities
+                    if current.label == 'MEDICAL_CONDITION' and existing.label in ('ORG', 'PERSON', 'GPE', 'DATE'):
+                        result.remove(existing)
+                        result.append(current)
+                    elif existing.label == 'MEDICAL_CONDITION' and current.label in ('ORG', 'PERSON', 'GPE', 'DATE'):
+                        pass  # Keep existing medical condition
+                    elif (current.confidence > existing.confidence or 
                         (current.confidence == existing.confidence and 
                          (current.end - current.start) > (existing.end - existing.start))):
                         result.remove(existing)

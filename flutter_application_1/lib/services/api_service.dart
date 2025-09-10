@@ -5,7 +5,7 @@ import '../models/chat_session.dart';
 import 'local_storage_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://pii-security-app.onrender.com/api';
+  static const String baseUrl = 'http://10.193.124.140:5000/api';
 
   // Session management
   static Future<List<ChatSession>> getSessions() async {

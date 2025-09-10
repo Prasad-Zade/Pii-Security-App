@@ -33,7 +33,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             icon: Icons.edit,
             color: const Color(0xFF2F2F2F),
             textColor: Colors.white,
-            label: "📝 Your Input",
+            label: "Your Input",
             alignment: Alignment.centerRight,
           ),
           const SizedBox(height: 8),

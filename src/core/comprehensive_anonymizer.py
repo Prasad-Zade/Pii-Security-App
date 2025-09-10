@@ -16,9 +16,11 @@ class ComprehensiveAnonymizer:
 
         self.strategies = {
             # Basic Identity
-            'PERSON': self._name, 'NAME_PATTERN': self._name, 'STANDALONE_NAME': self._name,
-            'GENDER': self._gender, 'DOB': self._dob, 'AGE': self._age,
-            'NATIONALITY': self._nationality, 'RELIGION': self._religion,
+            'PERSON': self._name, 'FULL_NAME': self._name, 'FIRST_NAME': self._name, 'LAST_NAME': self._name,
+            'FATHER_NAME': self._name, 'MOTHER_NAME': self._name, 'SPOUSE_NAME': self._name,
+            'TITLE': self._title, 'DOB': self._dob, 'AGE': self._age,
+            'GENDER': self._gender, 'NATIONALITY': self._nationality, 'RELIGION': self._religion,
+            'CASTE': self._caste,
             
             # Contact
             'EMAIL': self._email, 'PHONE': self._phone, 'ADDRESS': self._address,
@@ -33,15 +35,33 @@ class ComprehensiveAnonymizer:
             'BANK_ACCOUNT': self._bank_account, 'CREDIT_CARD': self._cc, 'CVV': self._cvv,
             'IFSC': self._ifsc, 'UPI_ID': self._upi_id, 'SALARY': self._salary,
             
+            # Professional
+            'OCCUPATION': self._occupation, 'EMPLOYER': self._employer, 'EXPERIENCE': self._experience,
+            
+            # Academic
+            'UNIVERSITY': self._university, 'DEGREE': self._degree, 'CGPA': self._cgpa,
+            
             # Health
-            'BLOOD_GROUP': self._blood_group, 'MEDICAL_RECORD': self._medical_record,
+            'BLOOD_GROUP': self._blood_group, 'HEIGHT_WEIGHT': self._height_weight,
+            'MEDICAL_ID': self._medical_record, 'MEDICAL_RECORD': self._medical_record,
             'MEDICAL_CONDITION': self._medical_cond,
             
             # Travel
-            'VEHICLE_NUMBER': self._vehicle_number,
+            'VEHICLE_NUMBER': self._vehicle_number, 'FLIGHT_BOOKING': self._flight_booking,
             
             # Digital
             'IP_ADDRESS': self._ip, 'MAC_ADDRESS': self._mac_address, 'IMEI': self._imei,
+            
+            # Location
+            'LOCATION': self._location, 'HOMETOWN': self._hometown,
+            
+            # Standalone patterns
+            'AADHAAR_STANDALONE': self._aadhaar, 'PAN_STANDALONE': self._pan,
+            'PASSPORT_STANDALONE': self._passport, 'CREDIT_CARD_STANDALONE': self._cc,
+            'VEHICLE_STANDALONE': self._vehicle_number, 'MEDICAL_ID_STANDALONE': self._medical_record,
+            
+            # Sensitive
+            'POLITICAL_PARTY': self._political_party, 'CRIMINAL_RECORD': self._criminal_record,
             
             # General
             'ORG': self._org, 'GPE': self._location, 'DATE': self._date,
@@ -98,25 +118,16 @@ class ComprehensiveAnonymizer:
 
     # Anonymization methods
     def _name(self, orig): return self.faker.name()
-    def _gender(self, orig): return 'gender: other'
-    def _dob(self, orig): return f"dob: {self.faker.date()}"
-    def _age(self, orig): 
-        age = self.faker.random_int(min=18, max=80)
-        if 'years old' in orig.lower(): return f"{age} years old"
-        elif 'aged' in orig.lower(): return f"aged {age}"
-        else: return f"age: {age}"
-    def _nationality(self, orig): return f"nationality: {self.faker.country()}"
-    def _religion(self, orig): return 'religion: other'
+    def _gender(self, orig): return self.faker.random_element(['Male', 'Female', 'Other'])
+    def _dob(self, orig): return self.faker.date()
+    def _age(self, orig): return str(self.faker.random_int(min=18, max=80))
+    def _nationality(self, orig): return self.faker.country()
+    def _religion(self, orig): return self.faker.random_element(['Hindu', 'Muslim', 'Christian', 'Other'])
     
-    def _email(self, orig):
-        try:
-            domain = orig.split('@')[1]
-            if 'gmail' in domain.lower(): return f"{self.faker.user_name()}@gmail.com"
-        except: pass
-        return self.faker.email()
+    def _email(self, orig): return self.faker.email()
     def _phone(self, orig): return self.faker.phone_number()
     def _address(self, orig): return self.faker.address().replace('\n', ', ')
-    def _pin_code(self, orig): return f"pin: {self.faker.random_number(digits=6)}"
+    def _pin_code(self, orig): return str(self.faker.random_number(digits=6))
     def _social_media(self, orig): return f"@{self.faker.user_name()}"
     
     def _aadhaar(self, orig): return f"{self.faker.random_number(digits=4)} {self.faker.random_number(digits=4)} {self.faker.random_number(digits=4)}"
@@ -125,13 +136,8 @@ class ComprehensiveAnonymizer:
         digits = self.faker.random_number(digits=4)
         letter2 = self.faker.random_letter().upper()
         return f"{letters1}{digits:04d}{letter2}"
-    def _passport(self, orig):
-        if len(orig) == 8 and orig[0].isalpha():
-            return self.faker.random_letter().upper() + str(self.faker.random_number(digits=7))
-        return str(self.faker.random_number(digits=9))
-    def _voter_id(self, orig):
-        letters = ''.join(self.faker.random_letters(length=3)).upper()
-        return f"{letters}{self.faker.random_number(digits=7)}"
+    def _passport(self, orig): return self.faker.random_letter().upper() + str(self.faker.random_number(digits=7))
+    def _voter_id(self, orig): return ''.join(self.faker.random_letters(length=3)).upper() + str(self.faker.random_number(digits=7))
     def _driving_license(self, orig): return f"{self.faker.state_abbr()}{self.faker.random_number(digits=13)}"
     def _ssn(self, orig): return self.faker.ssn()
     def _employee_id(self, orig): return f"EMP{self.faker.random_number(digits=6)}"
@@ -139,23 +145,35 @@ class ComprehensiveAnonymizer:
     
     def _bank_account(self, orig): return str(self.faker.random_number(digits=12))
     def _cc(self, orig): return self.faker.credit_card_number()
-    def _cvv(self, orig): return f"cvv: {self.faker.random_number(digits=3)}"
-    def _ifsc(self, orig):
-        bank_code = ''.join(self.faker.random_letters(length=4)).upper()
-        branch_code = ''.join(self.faker.random_letters(length=6)).upper()
-        return f"{bank_code}0{branch_code}"
+    def _cvv(self, orig): return str(self.faker.random_number(digits=3))
+    def _ifsc(self, orig): return ''.join(self.faker.random_letters(length=4)).upper() + '0' + ''.join(self.faker.random_letters(length=6)).upper()
     def _upi_id(self, orig): return f"{self.faker.user_name()}@paytm"
-    def _salary(self, orig): return f"salary: Rs.{self.faker.random_number(digits=6)}"
+    def _salary(self, orig): return f"Rs.{self.faker.random_number(digits=6)}"
     
-    def _blood_group(self, orig): return f"blood group: {self.faker.random_element(['A+', 'B+', 'AB+', 'O+'])}"
+    def _blood_group(self, orig): return self.faker.random_element(['A+', 'B+', 'AB+', 'O+', 'A-', 'B-', 'AB-', 'O-'])
     def _medical_record(self, orig): return f"MRN{self.faker.random_number(digits=8)}"
-    def _medical_cond(self, orig): return '[medical_condition]'
+    def _medical_cond(self, orig): return orig
     
     def _vehicle_number(self, orig): return f"{self.faker.state_abbr()}{self.faker.random_number(digits=2)}{self.faker.random_letters(length=2).upper()}{self.faker.random_number(digits=4)}"
     
     def _ip(self, orig): return self.faker.ipv4()
     def _mac_address(self, orig): return ':'.join([f"{self.faker.random_int(min=0, max=255):02x}" for _ in range(6)])
     def _imei(self, orig): return str(self.faker.random_number(digits=15))
+    
+    # Additional anonymizers for enhanced detector
+    def _title(self, orig): return f"Mr. {self.faker.last_name()}"
+    def _caste(self, orig): return 'General'
+    def _occupation(self, orig): return self.faker.job()
+    def _employer(self, orig): return self.faker.company()
+    def _experience(self, orig): return f"{self.faker.random_int(min=1, max=15)} years"
+    def _university(self, orig): return f"{self.faker.company()} University"
+    def _degree(self, orig): return self.faker.random_element(['B.Tech', 'M.Tech', 'MBA', 'B.Com', 'M.Com'])
+    def _cgpa(self, orig): return f"{self.faker.random_int(min=6, max=10)}.{self.faker.random_int(min=0, max=9)}"
+    def _height_weight(self, orig): return f"{self.faker.random_int(min=150, max=190)}cm" if 'height' in orig.lower() else f"{self.faker.random_int(min=50, max=100)}kg"
+    def _flight_booking(self, orig): return f"AI{self.faker.random_number(digits=9)}"
+    def _hometown(self, orig): return self.faker.city()
+    def _political_party(self, orig): return 'Independent Party'
+    def _criminal_record(self, orig): return f"CASE{self.faker.random_number(digits=8)}"
     
     def _org(self, orig): return self.faker.company()
     def _location(self, orig): return self.faker.city()
