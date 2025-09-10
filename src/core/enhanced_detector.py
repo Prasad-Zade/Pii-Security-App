@@ -2,7 +2,12 @@ import re
 from dataclasses import dataclass
 from typing import List
 import logging
-from .ml_dependency_analyzer import MLDependencyAnalyzer
+try:
+    from .ml_dependency_analyzer import MLDependencyAnalyzer
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
+    from .dependency_analyzer import DependencyAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +23,10 @@ class PIIEntity:
 
 class EnhancedPIIDetector:
     def __init__(self, model_name: str = 'en_core_web_sm'):
-        self.dependency_analyzer = MLDependencyAnalyzer()
+        if ML_AVAILABLE:
+            self.dependency_analyzer = MLDependencyAnalyzer()
+        else:
+            self.dependency_analyzer = DependencyAnalyzer()
         try:
             import spacy
             self.nlp = spacy.load(model_name)
@@ -150,10 +158,16 @@ class EnhancedPIIDetector:
         
         entities = self._remove_overlaps(entities)
         
-        # Use ML model to determine preservation
-        for entity in entities:
-            if self.dependency_analyzer.should_preserve_entity(entity, text):
-                entity.preserve = True
+        # Use ML or rule-based preservation
+        if ML_AVAILABLE:
+            for entity in entities:
+                if self.dependency_analyzer.should_preserve_entity(entity, text):
+                    entity.preserve = True
+        else:
+            dependencies = self.dependency_analyzer.analyze_dependencies(text, entities)
+            for entity in entities:
+                if self.dependency_analyzer.should_preserve_entity(entity, text, dependencies):
+                    entity.preserve = True
         
         return entities
     
