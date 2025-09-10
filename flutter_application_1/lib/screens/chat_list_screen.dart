@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/chat_session.dart';
-import '../services/api_service.dart';
+import '../services/local_storage_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -26,7 +26,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     });
 
     try {
-      final sessions = await ApiService.getSessions();
+      final sessions = await LocalStorageService.getSessions();
       setState(() {
         _sessions = sessions;
         _isLoading = false;
@@ -40,12 +40,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Future<void> _createNewChat() async {
     try {
-      final session = await ApiService.createSession();
+      final session = ChatSession(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: 'New Chat',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await LocalStorageService.addSession(session);
       if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChatScreen(sessionId: session.id),
+            builder: (context) => const ChatScreen(),
           ),
         ).then((_) => _loadSessions());
       }
@@ -60,7 +66,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Future<void> _deleteSession(String sessionId) async {
     try {
-      await ApiService.deleteSession(sessionId);
+      await LocalStorageService.deleteSession(sessionId);
       _loadSessions();
     } catch (e) {
       if (mounted) {
@@ -134,7 +140,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ChatScreen(sessionId: session.id),
+                              builder: (context) => const ChatScreen(),
                             ),
                           ).then((_) => _loadSessions());
                         },

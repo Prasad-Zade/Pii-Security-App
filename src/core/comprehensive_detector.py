@@ -20,11 +20,7 @@ class ComprehensivePIIDetector:
     def __init__(self, model_name: str = 'en_core_web_sm', config=None):
         self.config = config
         self.dependency_analyzer = DependencyAnalyzer()
-        try:
-            import spacy
-            self.nlp = spacy.load(model_name)
-        except Exception:
-            self.nlp = None
+        self.nlp = None
 
         self.patterns = {
             # Basic Identity
@@ -139,15 +135,7 @@ class ComprehensivePIIDetector:
             return []
         entities = []
 
-        # spaCy NER
-        if self.nlp:
-            try:
-                doc = self.nlp(text)
-                for ent in doc.ents:
-                    if ent.label_ in ('PERSON','ORG','GPE','DATE'):
-                        entities.append(PIIEntity(ent.text.strip(), ent.label_, ent.start_char, ent.end_char, 0.9))
-            except Exception as e:
-                logger.debug('spaCy error: %s', e)
+        # Basic NER using regex patterns only
 
         # Regex patterns
         for label, patt in self.patterns.items():
