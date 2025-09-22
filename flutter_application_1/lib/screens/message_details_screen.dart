@@ -24,24 +24,28 @@ class MessageDetailsScreen extends StatelessWidget {
             _buildInfoCard(),
             const SizedBox(height: 16),
             _buildTextSection(
+              context,
               'Original Message',
               message.userMessage,
               Icons.message,
             ),
             const SizedBox(height: 16),
             _buildTextSection(
+              context,
               'Anonymized Text',
               message.anonymizedText,
               Icons.security,
             ),
             const SizedBox(height: 16),
             _buildTextSection(
+              context,
               'AI Response',
               message.botResponse,
               Icons.smart_toy,
             ),
             const SizedBox(height: 16),
             _buildTextSection(
+              context,
               'Reconstructed Text',
               message.reconstructedText,
               Icons.restore,
@@ -104,7 +108,7 @@ class MessageDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextSection(String title, String content, IconData icon) {
+  Widget _buildTextSection(BuildContext context, String title, String content, IconData icon) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -127,6 +131,12 @@ class MessageDetailsScreen extends StatelessWidget {
                   icon: const Icon(Icons.copy, size: 20),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: content));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Copied to clipboard'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
                   },
                 ),
               ],

@@ -10,11 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize PII system
-try:
-    pii_system = PIIPrivacySystem()
-except Exception as e:
-    print(f"Warning: PII system initialization failed: {e}")
-    pii_system = None
+pii_system = PIIPrivacySystem()
 
 # Stateless server - no storage
 
@@ -114,6 +110,4 @@ def delete_session(session_id):
     return jsonify({'success': True, 'message': 'Session deleted'})
 
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)

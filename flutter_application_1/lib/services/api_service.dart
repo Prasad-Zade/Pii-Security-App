@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/chat_message.dart';
@@ -89,8 +90,10 @@ class ApiService {
           throw Exception('Server error: ${response.statusCode}');
         }
       }
+    } on TimeoutException {
+      throw Exception('Request timeout. Please check your connection.');
     } catch (e) {
-      if (e.toString().contains('Connection refused') || e.toString().contains('TimeoutException')) {
+      if (e.toString().contains('Connection refused')) {
         throw Exception('Cannot connect to server. Make sure backend is running on $baseUrl');
       }
       rethrow;
@@ -99,45 +102,68 @@ class ApiService {
 
   static Future<void> deleteSession(String sessionId) async {
     try {
-      await http.delete(Uri.parse('$baseUrl/sessions/$sessionId'));
-    } catch (_) {}
+      await http.delete(Uri.parse('$baseUrl/sessions/$sessionId'))
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // Ignore network errors, still delete locally
+    }
     await LocalStorageService.deleteSession(sessionId);
   }
 
   // Legacy methods
   static Future<ChatMessage> processText(String text) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/process'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'text': text}),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/process'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'text': text}),
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return ChatMessage.fromJson(data['data']);
-    } else {
-      throw Exception('Failed to process text');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return ChatMessage.fromJson(data['data']);
+      } else {
+        throw Exception('Failed to process text: ${response.statusCode}');
+      }
+    } on TimeoutException {
+      throw Exception('Request timeout. Please check your connection.');
+    } catch (e) {
+      throw Exception('Failed to process text: ${e.toString()}');
     }
   }
 
   static Future<List<ChatMessage>> getHistory() async {
-    final response = await http.get(Uri.parse('$baseUrl/history'));
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/history'))
+          .timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data['data'] as List)
-          .map((json) => ChatMessage.fromJson(json))
-          .toList();
-    } else {
-      throw Exception('Failed to load history');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['data'] as List)
+            .map((json) => ChatMessage.fromJson(json))
+            .toList();
+      } else {
+        throw Exception('Failed to load history: ${response.statusCode}');
+      }
+    } on TimeoutException {
+      throw Exception('Request timeout. Please check your connection.');
+    } catch (e) {
+      throw Exception('Failed to load history: ${e.toString()}');
     }
   }
 
   static Future<void> clearHistory() async {
-    final response = await http.post(Uri.parse('$baseUrl/clear-history'));
-    
-    if (response.statusCode != 200) {
-      throw Exception('Failed to clear history');
+    try {
+      final response = await http.post(Uri.parse('$baseUrl/clear-history'))
+          .timeout(const Duration(seconds: 10));
+      
+      if (response.statusCode != 200) {
+        throw Exception('Failed to clear history: ${response.statusCode}');
+      }
+    } on TimeoutException {
+      throw Exception('Request timeout. Please check your connection.');
+    } catch (e) {
+      throw Exception('Failed to clear history: ${e.toString()}');
     }
   }
 }

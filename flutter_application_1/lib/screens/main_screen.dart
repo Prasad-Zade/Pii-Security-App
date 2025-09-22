@@ -14,9 +14,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   List<ChatSession> _sessions = [];
   String? _currentSessionId;
-  bool _showSidebar = false;
+
   bool _isEditMode = false;
-  Set<String> _selectedSessions = {};
+  final Set<String> _selectedSessions = {};
 
   // For floating menu
   String? _longPressedSessionId;
@@ -56,7 +56,6 @@ class _MainScreenState extends State<MainScreen> {
       if (mounted) {
         setState(() {
           _currentSessionId = session.id;
-          _showSidebar = false;
           _isEditMode = false;
           _selectedSessions.clear();
         });
@@ -84,9 +83,13 @@ class _MainScreenState extends State<MainScreen> {
     try {
       for (final id in _selectedSessions) {
         await ApiService.deleteSession(id);
-        if (_currentSessionId == id) _currentSessionId = null;
+        if (_currentSessionId == id) {
+          _currentSessionId = null;
+        }
       }
-      if (_currentSessionId == null) await _createNewChatAutomatically();
+      if (_currentSessionId == null) {
+        await _createNewChatAutomatically();
+      }
       if (mounted) {
         setState(() {
           _selectedSessions.clear();
@@ -119,17 +122,13 @@ class _MainScreenState extends State<MainScreen> {
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity! > 500) {
             _sidebarOffset = 0;
-            _showSidebar = true;
           } else if (details.primaryVelocity! < -500) {
             _sidebarOffset = -280;
-            _showSidebar = false;
             _longPressedSessionId = null;
           } else if (_sidebarOffset > -140) {
             _sidebarOffset = 0;
-            _showSidebar = true;
           } else {
             _sidebarOffset = -280;
-            _showSidebar = false;
             _longPressedSessionId = null;
           }
           setState(() {});
@@ -168,7 +167,6 @@ class _MainScreenState extends State<MainScreen> {
                 child: GestureDetector(
                   onTap: () => setState(() {
                     _sidebarOffset = -280;
-                    _showSidebar = false;
                     _longPressedSessionId = null;
                   }),
                   child: Container(color: Colors.transparent),
@@ -198,7 +196,6 @@ class _MainScreenState extends State<MainScreen> {
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white),
                   onPressed: () => setState(() {
-                    _showSidebar = false;
                     _sidebarOffset = -280;
                     _isEditMode = false;
                     _selectedSessions.clear();
@@ -253,12 +250,14 @@ class _MainScreenState extends State<MainScreen> {
                       return Builder(
                         builder: (tileContext) => GestureDetector(
                           onLongPress: () {
-                            final box = tileContext.findRenderObject() as RenderBox;
-                            final pos = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
-                            setState(() {
-                              _longPressedSessionId = session.id;
-                              _longPressedPosition = pos;
-                            });
+                            final box = tileContext.findRenderObject() as RenderBox?;
+                            if (box != null) {
+                              final pos = box.localToGlobal(Offset.zero, ancestor: context.findRenderObject());
+                              setState(() {
+                                _longPressedSessionId = session.id;
+                                _longPressedPosition = pos;
+                              });
+                            }
                           },
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -273,10 +272,11 @@ class _MainScreenState extends State<MainScreen> {
                                       value: _selectedSessions.contains(session.id),
                                       onChanged: (selected) {
                                         setState(() {
-                                          if (selected == true)
+                                          if (selected == true) {
                                             _selectedSessions.add(session.id);
-                                          else
+                                          } else {
                                             _selectedSessions.remove(session.id);
+                                          }
                                         });
                                       },
                                     )
@@ -297,7 +297,6 @@ class _MainScreenState extends State<MainScreen> {
                                 } else {
                                   setState(() {
                                     _currentSessionId = session.id;
-                                    _showSidebar = false;
                                     _sidebarOffset = -280;
                                     _isEditMode = false;
                                     _selectedSessions.clear();
@@ -375,7 +374,6 @@ class _MainScreenState extends State<MainScreen> {
           IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () => setState(() {
-              _showSidebar = true;
               _sidebarOffset = 0;
             }),
           ),
@@ -449,9 +447,15 @@ class _MainScreenState extends State<MainScreen> {
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inDays == 0) {
+      return 'Today';
+    }
+    if (diff.inDays == 1) {
+      return 'Yesterday';
+    }
+    if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    }
     return '${date.day}/${date.month}';
   }
 }

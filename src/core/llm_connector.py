@@ -1,12 +1,6 @@
 import os
 import logging
-
-try:
-    import google.generativeai as genai
-    GENAI_AVAILABLE = True
-except ImportError:
-    GENAI_AVAILABLE = False
-    genai = None
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +12,7 @@ class GeminiConnector:
         self.available = False
         self.model = None
 
-        if GENAI_AVAILABLE and self.api_key:
+        if self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel(self.model_name)
@@ -27,7 +21,7 @@ class GeminiConnector:
             except Exception as e:
                 logger.error(f"Failed to init Gemini: {e}")
         else:
-            logger.warning("Gemini not available or no API key found.")
+            logger.warning("No API key found for Gemini.")
 
     def is_available(self):
         return self.available and self.model is not None
@@ -37,8 +31,6 @@ class GeminiConnector:
             return self._mock(prompt)
 
         try:
-            if not GENAI_AVAILABLE:
-                return self._mock(prompt)
             from google.generativeai import types
             
             # Configure safety settings to be less restrictive for PII detection
@@ -115,32 +107,13 @@ class GeminiConnector:
 
     def _mock(self, prompt):
         """Fallback responses when API is unavailable"""
-        prompt_lower = prompt.lower()
-        
-        # Math/calculation responses
-        if any(word in prompt_lower for word in ['addition', 'sum', 'calculate', 'add']):
-            import re
-            numbers = re.findall(r'\d+', prompt)
-            if numbers:
-                try:
-                    total = sum(int(num) for num in numbers)
-                    return f"The sum of the digits is: {total}"
-                except:
-                    pass
-            return "I can help with calculations. Please provide the numbers you'd like me to add."
-        
-        # Medical responses
-        if any(word in prompt_lower for word in ['diabetes', 'hypertension', 'medical', 'health']):
-            return "For medical advice, please consult with a healthcare professional. I can provide general information but not medical diagnosis or treatment recommendations."
-        
-        # General helpful responses
-        responses = [
-            "I understand your request and I'm here to help.",
-            "Thank you for your message. How can I assist you further?",
-            "I've processed your request. What would you like to know?",
-            "I'm ready to help. Please let me know what you need."
+        canned = [
+            "Thank you — processed anonymously.",
+            "I have reviewed the text and can help.",
+            "Analysis complete - privacy concerns noted.",
+            "Content processed with privacy considerations."
         ]
-        return responses[hash(prompt) % len(responses)]
+        return canned[hash(prompt) % len(canned)]
 
     def test_connection(self):
         """Test the connection with a simple prompt"""

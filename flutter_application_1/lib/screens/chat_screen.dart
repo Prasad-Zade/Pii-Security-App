@@ -5,7 +5,6 @@ import '../services/api_service.dart';
 import '../services/local_storage_service.dart';
 import '../widgets/message_bubble.dart';
 import 'message_details_screen.dart';
-import 'history_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -66,10 +65,14 @@ class _ChatScreenState extends State<ChatScreen> {
       
       // Create new session if needed
       if (message == null) {
-        final title = text.length > 50 ? text.substring(0, 50) + '...' : text;
-        final session = await ApiService.createSession(title: title);
-        _currentSessionId = session.id;
-        message = await ApiService.processTextInSession(_currentSessionId!, text);
+        try {
+          final title = text.length > 50 ? '${text.substring(0, 50)}...' : text;
+          final session = await ApiService.createSession(title: title);
+          _currentSessionId = session.id;
+          message = await ApiService.processTextInSession(_currentSessionId!, text);
+        } catch (e) {
+          throw Exception('Failed to create session: ${e.toString()}');
+        }
       }
       
       setState(() {
@@ -79,7 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
       
       // Update session title if this is the first message
       if (_messages.length == 1 && _currentSessionId != null) {
-        final title = text.length > 50 ? text.substring(0, 50) + '...' : text;
+        final title = text.length > 50 ? '${text.substring(0, 50)}...' : text;
         final sessions = await LocalStorageService.getSessions();
         final sessionIndex = sessions.indexWhere((s) => s.id == _currentSessionId);
         if (sessionIndex != -1) {
@@ -137,40 +140,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
 
 
-  void _showInfoDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.security, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('How PII Protection Works', style: TextStyle(fontSize: 20),),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('📝 Step 1: Your Input'),
-            Text('You type your message with personal information.\n'),
-            Text('🔒 Step 2: PII Masking'),
-            Text('We detect and replace sensitive data with safe placeholders.\n'),
-            Text('💡 Step 3: AI Processing'),
-            Text('AI processes the masked text (never sees your real data).\n'),
-            Text('✅ Step 4: Reconstruction'),
-            Text('We restore your original data in the final response.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Got it!'),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {

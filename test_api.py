@@ -1,81 +1,118 @@
 #!/usr/bin/env python3
 """
-Test script to validate API server functionality
+Test script for PII Privacy Protection API
 """
 
 import requests
 import json
 import time
 
-def test_api_consistency():
-    """Test API endpoint consistency"""
-    base_url = "http://localhost:5000"
-    
-    test_cases = [
-        "My name is Alice Johnson and my phone is 555-0123",
-        "Contact Dr. Smith at smith@hospital.com for diabetes treatment",
-        "SSN: 123-45-6789, Credit Card: 4532-1234-5678-9012"
-    ]
-    
-    print("Testing API Consistency")
-    print("=" * 40)
-    
-    for i, test_text in enumerate(test_cases, 1):
-        print(f"\nTest Case {i}: {test_text}")
-        print("-" * 30)
-        
-        # Test multiple requests
-        results = []
-        for run in range(3):
-            try:
-                response = requests.post(
-                    f"{base_url}/api/process",
-                    json={"text": test_text},
-                    timeout=10
-                )
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get('success'):
-                        result_data = data['data']
-                        results.append({
-                            'anonymized': result_data['anonymized_text'],
-                            'privacy_score': result_data['privacy_score']
-                        })
-                        print(f"Run {run + 1}: Score {result_data['privacy_score']}")
-                    else:
-                        print(f"Run {run + 1}: API Error - {data.get('error', 'Unknown')}")
-                else:
-                    print(f"Run {run + 1}: HTTP {response.status_code}")
-                    
-            except requests.exceptions.RequestException as e:
-                print(f"Run {run + 1}: Connection Error - {e}")
-            
-            time.sleep(0.1)  # Small delay between requests
-        
-        # Check consistency
-        if len(results) == 3:
-            anonymized_texts = [r['anonymized'] for r in results]
-            scores = [r['privacy_score'] for r in results]
-            
-            if len(set(anonymized_texts)) == 1 and len(set(scores)) == 1:
-                print("[PASS] API responses are consistent")
-            else:
-                print("[FAIL] API responses are inconsistent")
-        else:
-            print(f"[WARN] Only {len(results)}/3 requests succeeded")
+# Configuration
+BASE_URL = "https://pii-security-app.onrender.com/api"  # Update when deployed
+LOCAL_URL = "http://localhost:5000/api"
 
-if __name__ == "__main__":
-    print("Make sure the API server is running on localhost:5000")
-    print("Start it with: python api_server.py")
+def test_api(base_url):
+    print(f"Testing API at: {base_url}")
+    print("=" * 50)
+    
+    # Test 1: Health Check
+    print("1. Testing health check...")
+    try:
+        response = requests.get(f"{base_url}/health", timeout=30)
+        if response.status_code == 200:
+            print("✓ Health check passed")
+            print(f"  Response: {response.json()}")
+        else:
+            print(f"✗ Health check failed: {response.status_code}")
+    except Exception as e:
+        print(f"✗ Health check error: {e}")
+    
     print()
     
+    # Test 2: Process Text
+    print("2. Testing text processing...")
+    test_data = {
+        "text": "Customer John Smith, order ID ORD123, count letters in John Smith's name"
+    }
+    
     try:
-        # Quick health check
-        response = requests.get("http://localhost:5000/api/sessions", timeout=5)
+        response = requests.post(
+            f"{base_url}/process", 
+            json=test_data,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
         if response.status_code == 200:
-            test_api_consistency()
+            result = response.json()
+            print("✓ Text processing successful")
+            print(f"  Original: {result['original_text']}")
+            print(f"  Masked: {result['masked_text']}")
+            print(f"  Privacy Score: {result['privacy_score']}%")
+            print(f"  Processing Time: {result['processing_time']}s")
         else:
-            print("API server not responding correctly")
-    except requests.exceptions.RequestException:
-        print("Cannot connect to API server. Make sure it's running on localhost:5000")
+            print(f"✗ Text processing failed: {response.status_code}")
+            print(f"  Response: {response.text}")
+    except Exception as e:
+        print(f"✗ Text processing error: {e}")
+    
+    print()
+    
+    # Test 3: Flutter API - Create Session
+    print("3. Testing Flutter API - Create Session...")
+    try:
+        session_data = {"title": "Test Session"}
+        response = requests.post(
+            f"{base_url}/sessions",
+            json=session_data,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            session_result = response.json()
+            print("✓ Session creation successful")
+            session_id = session_result['data']['id']
+            print(f"  Session ID: {session_id}")
+            
+            # Test 4: Process in Session
+            print("\n4. Testing session processing...")
+            process_data = {"text": "User Jane Doe, what's artificial intelligence?"}
+            response = requests.post(
+                f"{base_url}/sessions/{session_id}/process",
+                json=process_data,
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                print("✓ Session processing successful")
+                print(f"  Privacy Score: {result['data']['privacy_score']}%")
+            else:
+                print(f"✗ Session processing failed: {response.status_code}")
+        else:
+            print(f"✗ Session creation failed: {response.status_code}")
+    except Exception as e:
+        print(f"✗ Session API error: {e}")
+    
+    print()
+
+def main():
+    print("PII Privacy Protection API Test")
+    print("=" * 50)
+    
+    # Test local first
+    print("Testing LOCAL API...")
+    test_api(LOCAL_URL)
+    
+    print("\n" + "=" * 50)
+    
+    # Test production
+    print("Testing PRODUCTION API...")
+    test_api(BASE_URL)
+    
+    print("\nTest completed!")
+
+if __name__ == "__main__":
+    main()
