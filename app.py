@@ -15,8 +15,9 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import uuid
 from datetime import datetime
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-from src.core.pii_system import PIIPrivacySystem
+# Simplified PII system for deployment
+# sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+# from src.core.pii_system import PIIPrivacySystem
 
 app = Flask(__name__)
 app.secret_key = 'pii_privacy_secret_key_2024'
@@ -24,7 +25,7 @@ CORS(app)  # Enable CORS for Flutter app
 
 class FunctionalPIISystem:
     def __init__(self):
-        self.pii_system = PIIPrivacySystem()
+        # self.pii_system = PIIPrivacySystem()
         self.load_functional_model()
         
     def load_functional_model(self):
@@ -138,8 +139,8 @@ class FunctionalPIISystem:
         # Extract entities
         entities = self.extract_entities(text)
         
-        # Process with base PII system
-        base_result = self.pii_system.process(text, include_llm=False)
+        # Process with base PII system (simplified for deployment)
+        # base_result = self.pii_system.process(text, include_llm=False)
         
         # Apply functional dependency logic
         masked_text = text
