@@ -1,1 +1,1 @@
-web: python app_simple.py
+web: python deploy_clean.py
