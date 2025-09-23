@@ -2,8 +2,8 @@ services:
   - type: web
     name: pii-security-app
     env: python
-    buildCommand: pip install --no-cache-dir Flask==2.3.3 Flask-CORS==4.0.0 gunicorn==20.1.0
-    startCommand: python deploy_clean.py
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
