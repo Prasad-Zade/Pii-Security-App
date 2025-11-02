@@ -83,14 +83,7 @@ class PIIDependencyHandler:
     def _generate_response(self, text: str) -> str:
         """Generate response using Gemini API"""
         
-        # Handle math locally
-        if any(word in text.lower() for word in ['add', 'sum', 'calculate']):
-            numbers = re.findall(r'\d+', text)
-            if numbers:
-                total = sum(int(n) for n in numbers)
-                return f"The sum is: {total}"
-        
-        # Try Gemini API
+        # Try Gemini API for all queries
         try:
             url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={self.api_key}'
             

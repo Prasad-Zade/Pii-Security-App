@@ -65,21 +65,30 @@ class ModelWrapper:
         }
     
     def _generate_response(self, query: str) -> str:
-        """Generate response"""
-        import re
+        """Generate response using LLM"""
+        import requests
         
-        query_lower = query.lower()
-        
-        # Math operations
-        if any(word in query_lower for word in ['sum', 'add', 'calculate']):
-            numbers = re.findall(r'\d+', query)
-            if numbers:
-                total = sum(int(n) for n in numbers)
-                return f"The sum is: {total}"
-        
-        # Greetings
-        if any(word in query_lower for word in ['hello', 'hi', 'name is']):
-            return "Hello! Your privacy is protected. How can I help you?"
+        # Use Gemini API for all responses
+        try:
+            api_key = 'AIzaSyAJpAxoKWc9biprobj_KXP0hxCRoByAEFo'
+            url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={api_key}'
+            
+            response = requests.post(url, json={
+                'contents': [{'parts': [{'text': query}]}],
+                'generationConfig': {
+                    'maxOutputTokens': 512,
+                    'temperature': 0.7
+                }
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'candidates' in data and len(data['candidates']) > 0:
+                    candidate = data['candidates'][0]
+                    if 'content' in candidate and 'parts' in candidate['content']:
+                        return candidate['content']['parts'][0]['text']
+        except Exception as e:
+            print(f"[INFO] API error: {e}")
         
         return "I understand your request. Your privacy has been preserved."
     
