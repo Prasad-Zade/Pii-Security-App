@@ -1,0 +1,3 @@
+@echo off
+echo Starting PII Privacy Handler Backend with Faker Masking...
+python app.py
